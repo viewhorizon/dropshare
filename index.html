@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DropShare — compartí archivos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1f1f1f;
+    --border: #2a2a2a;
+    --accent: #c8f04a;
+    --accent-dim: #8fb030;
+    --text: #f0f0ec;
+    --muted: #666;
+    --danger: #ff5252;
+    --radius: 4px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 1rem 4rem;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(200,240,74,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,240,74,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    width: 100%;
+    max-width: 680px;
+    padding: 3rem 0 2.5rem;
+    position: relative;
+    z-index: 1;
+  }
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; display: inline-block; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .tagline {
+    margin-top: 2.5rem;
+    font-size: 2.8rem;
+    font-weight: 300;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+  }
+  .tagline em { font-style: normal; color: var(--accent); }
+
+  .subtitle {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+    letter-spacing: 0.01em;
+  }
+
+  /* Config panel */
+  .config-panel {
+    width: 100%;
+    max-width: 680px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+  .config-panel h3 {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+  .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    padding: 0.6rem 0.75rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus { border-color: var(--accent); }
+  .config-hint {
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .config-hint a { color: var(--accent); text-decoration: none; }
+  .config-hint a:hover { text-decoration: underline; }
+
+  .save-btn {
+    margin-top: 1rem;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .save-btn:hover { background: var(--accent); color: var(--bg); }
+  .saved-badge {
+    display: inline-block;
+    margin-left: 0.75rem;
+    font-size: 0.7rem;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .saved-badge.show { opacity: 1; }
+
+  /* Upload zone */
+  .upload-zone {
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+    z-index: 1;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 4rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--surface);
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(200,240,74,0.04);
+  }
+  .upload-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface2);
+    transition: border-color 0.2s;
+  }
+  .upload-zone:hover .upload-icon, .upload-zone.drag-over .upload-icon { border-color: var(--accent); }
+  .upload-icon svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.5; }
+  .upload-main-text {
+    font-size: 1rem;
+    font-weight: 400;
+    margin-bottom: 0.4rem;
+  }
+  .upload-sub-text { font-size: 0.8rem; color: var(--muted); }
+  .upload-types {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+  .type-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+  }
+  #file-input { display: none; }
+
+  /* Progress bar */
+  .progress-wrap {
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+    z-index: 1;
+    margin-top: 1.5rem;
+    display: none;
+  }
+  .progress-wrap.active { display: block; }
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .progress-filename {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+  }
+  .progress-pct {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+  }
+  .progress-bar-bg {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.2s ease;
+    border-radius: 2px;
+  }
+  .progress-status {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  /* Result box */
+  .result-box {
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+    z-index: 1;
+    margin-top: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    display: none;
+    animation: slideUp 0.3s ease;
+  }
+  .result-box.active { display: block; }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .result-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+  .result-url-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .result-url {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text);
+    padding: 0.6rem 0.75rem;
+    word-break: break-all;
+    line-height: 1.5;
+    cursor: text;
+    user-select: all;
+  }
+  .copy-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--bg);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0 1rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .copy-btn:hover { opacity: 0.85; }
+  .copy-btn:active { opacity: 0.7; }
+  .result-meta {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  /* History */
+  .history-section {
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+    z-index: 1;
+    margin-top: 3rem;
+  }
+  .section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .clear-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
+  }
+  .clear-btn:hover { color: var(--danger); }
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    transition: border-color 0.15s;
+  }
+  .history-item:hover { border-color: var(--accent-dim); }
+  .history-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--surface2);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .history-icon svg { width: 14px; height: 14px; stroke: var(--accent-dim); fill: none; stroke-width: 1.5; }
+  .history-info { flex: 1; min-width: 0; }
+  .history-name {
+    font-size: 0.8rem;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-date { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .history-size { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); flex-shrink: 0; }
+  .history-copy {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .history-copy:hover { border-color: var(--accent); color: var(--accent); }
+
+  .empty-history {
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+  }
+
+  /* Error toast */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--danger);
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius);
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  footer {
+    margin-top: 4rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+  footer a { color: var(--accent-dim); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 500px) {
+    .tagline { font-size: 2rem; }
+    .config-grid { grid-template-columns: 1fr; }
+    .result-url-row { flex-direction: column; }
+    .copy-btn { padding: 0.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="logo-dot"></span> DropShare</div>
+  <h1 class="tagline">Subí tu archivo.<br/><em>Compartí el link.</em></h1>
+  <p class="subtitle">Hosting gratuito con Supabase Storage · Los archivos son tuyos</p>
+</header>
+
+<!-- Config panel -->
+<div class="config-panel" id="config-panel">
+  <h3>⚙ configuración de supabase</h3>
+  <div class="config-grid">
+    <div>
+      <label for="sb-url">Supabase URL</label>
+      <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co"/>
+    </div>
+    <div>
+      <label for="sb-key">Anon Key</label>
+      <input type="password" id="sb-key" placeholder="eyJhbGci..."/>
+    </div>
+  </div>
+  <div>
+    <label for="sb-bucket" style="margin-top:0.75rem;">Nombre del bucket</label>
+    <input type="text" id="sb-bucket" placeholder="files" style="max-width:200px;"/>
+  </div>
+  <p class="config-hint">
+    Encontrás estos datos en <a href="https://supabase.com/dashboard" target="_blank">supabase.com → Project Settings → API</a>.
+    El bucket debe ser <strong>público</strong> para que los links funcionen.
+  </p>
+  <button class="save-btn" onclick="saveConfig()">Guardar configuración</button>
+  <span class="saved-badge" id="saved-badge">✓ guardado</span>
+</div>
+
+<!-- Upload zone -->
+<div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+  <div class="upload-icon">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+  </div>
+  <p class="upload-main-text">Arrastrá tu archivo acá o hacé click para elegir</p>
+  <p class="upload-sub-text">Máximo según tu plan de Supabase (gratis: hasta ~50 MB recomendado)</p>
+  <div class="upload-types">
+    <span class="type-tag">.zip</span>
+    <span class="type-tag">.rar</span>
+    <span class="type-tag">.7z</span>
+    <span class="type-tag">.tar</span>
+    <span class="type-tag">cualquier formato</span>
+  </div>
+</div>
+<input type="file" id="file-input" accept="*/*"/>
+
+<!-- Progress -->
+<div class="progress-wrap" id="progress-wrap">
+  <div class="progress-header">
+    <span class="progress-filename" id="progress-filename">archivo.zip</span>
+    <span class="progress-pct" id="progress-pct">0%</span>
+  </div>
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar"></div></div>
+  <p class="progress-status" id="progress-status">Preparando upload…</p>
+</div>
+
+<!-- Result -->
+<div class="result-box" id="result-box">
+  <div class="result-label">✓ archivo subido · link de descarga</div>
+  <div class="result-url-row">
+    <div class="result-url" id="result-url"></div>
+    <button class="copy-btn" onclick="copyUrl()">COPIAR</button>
+  </div>
+  <div class="result-meta">
+    <span id="result-name">—</span>
+    <span id="result-size">—</span>
+  </div>
+</div>
+
+<!-- History -->
+<div class="history-section">
+  <div class="section-title">
+    <span>historial de esta sesión</span>
+    <button class="clear-btn" onclick="clearHistory()">limpiar</button>
+  </div>
+  <div class="history-list" id="history-list"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<footer>
+  Powered by <a href="https://supabase.com" target="_blank">Supabase Storage</a> &amp; <a href="https://pages.github.com" target="_blank">GitHub Pages</a> &mdash; DropShare no almacena nada en sus propios servidores.
+</footer>
+
+<script>
+const STORAGE_KEY = 'dropshare_config';
+const HISTORY_KEY = 'dropshare_history';
+
+// --- Config ---
+function loadConfig() {
+  try {
+    const c = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    if (c.url) document.getElementById('sb-url').value = c.url;
+    if (c.key) document.getElementById('sb-key').value = c.key;
+    if (c.bucket) document.getElementById('sb-bucket').value = c.bucket;
+  } catch(e) {}
+}
+
+function getConfig() {
+  return {
+    url: document.getElementById('sb-url').value.trim().replace(/\/$/, ''),
+    key: document.getElementById('sb-key').value.trim(),
+    bucket: document.getElementById('sb-bucket').value.trim() || 'files'
+  };
+}
+
+function saveConfig() {
+  const c = getConfig();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(c));
+  const badge = document.getElementById('saved-badge');
+  badge.classList.add('show');
+  setTimeout(() => badge.classList.remove('show'), 2000);
+}
+
+// --- Toast ---
+function showToast(msg, duration = 4000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// --- Drag & Drop ---
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) uploadFile(file);
+});
+
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) uploadFile(e.target.files[0]);
+  e.target.value = '';
+});
+
+// --- Format helpers ---
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+function formatDate(ts) {
+  return new Date(ts).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function slugify(name) {
+  const ts = Date.now();
+  const safe = name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  return ts + '_' + safe;
+}
+
+// --- Upload ---
+async function uploadFile(file) {
+  const { url, key, bucket } = getConfig();
+  if (!url || !key) {
+    showToast('Primero completá y guardá la configuración de Supabase');
+    document.getElementById('sb-url').focus();
+    return;
+  }
+
+  const filename = slugify(file.name);
+  const uploadUrl = `${url}/storage/v1/object/${bucket}/${filename}`;
+
+  // Show progress
+  document.getElementById('progress-wrap').classList.add('active');
+  document.getElementById('result-box').classList.remove('active');
+  document.getElementById('progress-filename').textContent = file.name;
+  setProgress(0, 'Subiendo…');
+
+  try {
+    await uploadXHR(file, uploadUrl, key, (pct) => setProgress(pct, `Subiendo… ${pct}%`));
+
+    // Build public URL
+    const publicUrl = `${url}/storage/v1/object/public/${bucket}/${filename}`;
+
+    setProgress(100, '¡Listo!');
+
+    setTimeout(() => {
+      document.getElementById('progress-wrap').classList.remove('active');
+      showResult(publicUrl, file.name, file.size);
+      addToHistory({ name: file.name, url: publicUrl, size: file.size, ts: Date.now() });
+    }, 600);
+
+  } catch(err) {
+    document.getElementById('progress-wrap').classList.remove('active');
+    showToast('Error al subir: ' + (err.message || 'Error desconocido'));
+    console.error(err);
+  }
+}
+
+function uploadXHR(file, url, key, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.setRequestHeader('Authorization', 'Bearer ' + key);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.setRequestHeader('x-upsert', 'true');
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100));
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve(JSON.parse(xhr.responseText));
+      else {
+        let msg = xhr.statusText;
+        try { msg = JSON.parse(xhr.responseText).message || msg; } catch(e) {}
+        reject(new Error(`HTTP ${xhr.status}: ${msg}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Error de red'));
+    xhr.send(file);
+  });
+}
+
+function setProgress(pct, status) {
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-status').textContent = status;
+}
+
+// --- Result ---
+function showResult(url, name, size) {
+  document.getElementById('result-url').textContent = url;
+  document.getElementById('result-name').textContent = name;
+  document.getElementById('result-size').textContent = formatSize(size);
+  document.getElementById('result-box').classList.add('active');
+}
+
+function copyUrl() {
+  const url = document.getElementById('result-url').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✓ COPIADO';
+    setTimeout(() => btn.textContent = 'COPIAR', 2000);
+  }).catch(() => showToast('No se pudo copiar automáticamente'));
+}
+
+// --- History ---
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveHistory(arr) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(arr.slice(0, 50)));
+}
+
+function addToHistory(item) {
+  const arr = loadHistory();
+  arr.unshift(item);
+  saveHistory(arr);
+  renderHistory();
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const arr = loadHistory();
+  if (arr.length === 0) {
+    list.innerHTML = '<div class="empty-history">Todavía no subiste ningún archivo en esta sesión</div>';
+    return;
+  }
+  list.innerHTML = arr.map(item => `
+    <div class="history-item">
+      <div class="history-icon">
+        <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+      </div>
+      <div class="history-info">
+        <div class="history-name">${escapeHtml(item.name)}</div>
+        <div class="history-date">${formatDate(item.ts)}</div>
+      </div>
+      <span class="history-size">${formatSize(item.size)}</span>
+      <button class="history-copy" onclick="copyHistoryUrl('${escapeAttr(item.url)}', this)">copiar link</button>
+    </div>
+  `).join('');
+}
+
+function copyHistoryUrl(url, btn) {
+  navigator.clipboard.writeText(url).then(() => {
+    btn.textContent = '✓ copiado';
+    setTimeout(() => btn.textContent = 'copiar link', 2000);
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escapeAttr(s) {
+  return s.replace(/'/g, "\\'");
+}
+
+// --- Init ---
+loadConfig();
+renderHistory();
+</script>
+</body>
+</html>
