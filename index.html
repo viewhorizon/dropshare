@@ -1,769 +1,1898 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
+
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DropShare — compartí archivos</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-<style>
-  :root {
-    --bg: #0d0d0d;
-    --surface: #161616;
-    --surface2: #1f1f1f;
-    --border: #2a2a2a;
-    --accent: #c8f04a;
-    --accent-dim: #8fb030;
-    --text: #f0f0ec;
-    --muted: #666;
-    --danger: #ff5252;
-    --radius: 4px;
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 300;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 1rem 4rem;
-    position: relative;
-    overflow-x: hidden;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DropShare — archivos para agentes IA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --surface2: #1f1f1f;
+      --surface3: #252525;
+      --border: #2a2a2a;
+      --border2: #333;
+      --accent: #c8f04a;
+      --accent-dim: #8fb030;
+      --accent-bg: rgba(200, 240, 74, 0.06);
+      --text: #f0f0ec;
+      --muted: #666;
+      --muted2: #888;
+      --danger: #ff5252;
+      --warn: #f0a030;
+      --info: #5ba3f5;
+      --radius: 4px;
+      --radius-lg: 8px;
+    }
+    
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 1rem 5rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(200, 240, 74, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(200, 240, 74, 0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    /* HEADER */
+    header {
+      width: 100%;
+      max-width: 700px;
+      padding: 2.5rem 0 2rem;
+      position: relative;
+      z-index: 1
+    }
+    
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px
+    }
+    
+    .logo-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite
+    }
+    
+    @keyframes pulse {
 
-  /* Grid background */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(200,240,74,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(200,240,74,0.03) 1px, transparent 1px);
-    background-size: 48px 48px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  header {
-    width: 100%;
-    max-width: 680px;
-    padding: 3rem 0 2.5rem;
-    position: relative;
-    z-index: 1;
-  }
-  .logo {
-    font-family: 'Space Mono', monospace;
-    font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--accent);
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .logo-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; display: inline-block; animation: pulse 2s ease-in-out infinite; }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-
-  .tagline {
-    margin-top: 2.5rem;
-    font-size: 2.8rem;
-    font-weight: 300;
-    line-height: 1.15;
-    letter-spacing: -0.03em;
-  }
-  .tagline em { font-style: normal; color: var(--accent); }
-
-  .subtitle {
-    margin-top: 0.75rem;
-    font-size: 0.9rem;
-    color: var(--muted);
-    letter-spacing: 0.01em;
-  }
-
-  /* Config panel */
-  .config-panel {
-    width: 100%;
-    max-width: 680px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.25rem 1.5rem;
-    margin-bottom: 1.5rem;
-    position: relative;
-    z-index: 1;
-  }
-  .config-panel h3 {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 1rem;
-  }
-  .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  label {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--muted);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-  input[type="text"], input[type="password"] {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
-    font-size: 0.7rem;
-    padding: 0.6rem 0.75rem;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  input:focus { border-color: var(--accent); }
-  .config-hint {
-    margin-top: 0.75rem;
-    font-size: 0.75rem;
-    color: var(--muted);
-  }
-  .config-hint a { color: var(--accent); text-decoration: none; }
-  .config-hint a:hover { text-decoration: underline; }
-
-  .save-btn {
-    margin-top: 1rem;
-    background: transparent;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-family: 'Space Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.05em;
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-  }
-  .save-btn:hover { background: var(--accent); color: var(--bg); }
-  .saved-badge {
-    display: inline-block;
-    margin-left: 0.75rem;
-    font-size: 0.7rem;
-    color: var(--accent);
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-  .saved-badge.show { opacity: 1; }
-
-  /* Upload zone */
-  .upload-zone {
-    width: 100%;
-    max-width: 680px;
-    position: relative;
-    z-index: 1;
-    border: 1px dashed var(--border);
-    border-radius: var(--radius);
-    padding: 4rem 2rem;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-    background: var(--surface);
-  }
-  .upload-zone:hover, .upload-zone.drag-over {
-    border-color: var(--accent);
-    background: rgba(200,240,74,0.04);
-  }
-  .upload-icon {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto 1.25rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--surface2);
-    transition: border-color 0.2s;
-  }
-  .upload-zone:hover .upload-icon, .upload-zone.drag-over .upload-icon { border-color: var(--accent); }
-  .upload-icon svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.5; }
-  .upload-main-text {
-    font-size: 1rem;
-    font-weight: 400;
-    margin-bottom: 0.4rem;
-  }
-  .upload-sub-text { font-size: 0.8rem; color: var(--muted); }
-  .upload-types {
-    margin-top: 1rem;
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-  }
-  .type-tag {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.05em;
-    padding: 3px 8px;
-    border: 1px solid var(--border);
-    border-radius: 2px;
-    color: var(--muted);
-  }
-  #file-input { display: none; }
-
-  /* Progress bar */
-  .progress-wrap {
-    width: 100%;
-    max-width: 680px;
-    position: relative;
-    z-index: 1;
-    margin-top: 1.5rem;
-    display: none;
-  }
-  .progress-wrap.active { display: block; }
-  .progress-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-  }
-  .progress-filename {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 70%;
-  }
-  .progress-pct {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--accent);
-  }
-  .progress-bar-bg {
-    height: 2px;
-    background: var(--border);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  .progress-bar-fill {
-    height: 100%;
-    background: var(--accent);
-    width: 0%;
-    transition: width 0.2s ease;
-    border-radius: 2px;
-  }
-  .progress-status {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--muted);
-  }
-
-  /* Result box */
-  .result-box {
-    width: 100%;
-    max-width: 680px;
-    position: relative;
-    z-index: 1;
-    margin-top: 1.5rem;
-    background: var(--surface);
-    border: 1px solid var(--accent);
-    border-radius: var(--radius);
-    padding: 1.25rem 1.5rem;
-    display: none;
-    animation: slideUp 0.3s ease;
-  }
-  .result-box.active { display: block; }
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .result-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 0.75rem;
-  }
-  .result-url-row {
-    display: flex;
-    gap: 8px;
-    align-items: stretch;
-  }
-  .result-url {
-    flex: 1;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-family: 'Space Mono', monospace;
-    font-size: 0.68rem;
-    color: var(--text);
-    padding: 0.6rem 0.75rem;
-    word-break: break-all;
-    line-height: 1.5;
-    cursor: text;
-    user-select: all;
-  }
-  .copy-btn {
-    background: var(--accent);
-    border: none;
-    border-radius: var(--radius);
-    color: var(--bg);
-    font-family: 'Space Mono', monospace;
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    padding: 0 1rem;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: opacity 0.15s;
-  }
-  .copy-btn:hover { opacity: 0.85; }
-  .copy-btn:active { opacity: 0.7; }
-  .result-meta {
-    margin-top: 0.75rem;
-    display: flex;
-    gap: 1.5rem;
-    font-size: 0.75rem;
-    color: var(--muted);
-  }
-
-  /* History */
-  .history-section {
-    width: 100%;
-    max-width: 680px;
-    position: relative;
-    z-index: 1;
-    margin-top: 3rem;
-  }
-  .section-title {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .clear-btn {
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-family: 'Space Mono', monospace;
-    font-size: 0.6rem;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-    transition: color 0.15s;
-  }
-  .clear-btn:hover { color: var(--danger); }
-  .history-list { display: flex; flex-direction: column; gap: 8px; }
-  .history-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.75rem 1rem;
-    transition: border-color 0.15s;
-  }
-  .history-item:hover { border-color: var(--accent-dim); }
-  .history-icon {
-    width: 32px;
-    height: 32px;
-    background: var(--surface2);
-    border-radius: var(--radius);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .history-icon svg { width: 14px; height: 14px; stroke: var(--accent-dim); fill: none; stroke-width: 1.5; }
-  .history-info { flex: 1; min-width: 0; }
-  .history-name {
-    font-size: 0.8rem;
-    font-weight: 400;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .history-date { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
-  .history-size { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); flex-shrink: 0; }
-  .history-copy {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
-    font-size: 0.6rem;
-    padding: 4px 10px;
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .history-copy:hover { border-color: var(--accent); color: var(--accent); }
-
-  .empty-history {
-    text-align: center;
-    padding: 2rem;
-    font-size: 0.8rem;
-    color: var(--muted);
-    border: 1px dashed var(--border);
-    border-radius: var(--radius);
-  }
-
-  /* Error toast */
-  .toast {
-    position: fixed;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--danger);
-    color: #fff;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.72rem;
-    padding: 0.75rem 1.25rem;
-    border-radius: var(--radius);
-    opacity: 0;
-    transition: opacity 0.3s, transform 0.3s;
-    z-index: 100;
-    pointer-events: none;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  footer {
-    margin-top: 4rem;
-    font-size: 0.72rem;
-    color: var(--muted);
-    position: relative;
-    z-index: 1;
-    text-align: center;
-  }
-  footer a { color: var(--accent-dim); text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
-
-  @media (max-width: 500px) {
-    .tagline { font-size: 2rem; }
-    .config-grid { grid-template-columns: 1fr; }
-    .result-url-row { flex-direction: column; }
-    .copy-btn { padding: 0.6rem; }
-  }
-</style>
-</head>
-<body>
-
-<header>
-  <div class="logo"><span class="logo-dot"></span> DropShare</div>
-  <h1 class="tagline">Subí tu archivo.<br/><em>Compartí el link.</em></h1>
-  <p class="subtitle">Hosting gratuito con Supabase Storage · Los archivos son tuyos</p>
-</header>
-
-<!-- Config panel -->
-<div class="config-panel" id="config-panel">
-  <h3>⚙ configuración de supabase</h3>
-  <div class="config-grid">
-    <div>
-      <label for="sb-url">Supabase URL</label>
-      <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co"/>
-    </div>
-    <div>
-      <label for="sb-key">Anon Key</label>
-      <input type="password" id="sb-key" placeholder="eyJhbGci..."/>
-    </div>
-  </div>
-  <div>
-    <label for="sb-bucket" style="margin-top:0.75rem;">Nombre del bucket</label>
-    <input type="text" id="sb-bucket" placeholder="files" style="max-width:200px;"/>
-  </div>
-  <p class="config-hint">
-    Encontrás estos datos en <a href="https://supabase.com/dashboard" target="_blank">supabase.com → Project Settings → API</a>.
-    El bucket debe ser <strong>público</strong> para que los links funcionen.
-  </p>
-  <button class="save-btn" onclick="saveConfig()">Guardar configuración</button>
-  <span class="saved-badge" id="saved-badge">✓ guardado</span>
-</div>
-
-<!-- Upload zone -->
-<div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
-  <div class="upload-icon">
-    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-  </div>
-  <p class="upload-main-text">Arrastrá tu archivo acá o hacé click para elegir</p>
-  <p class="upload-sub-text">Máximo según tu plan de Supabase (gratis: hasta ~50 MB recomendado)</p>
-  <div class="upload-types">
-    <span class="type-tag">.zip</span>
-    <span class="type-tag">.rar</span>
-    <span class="type-tag">.7z</span>
-    <span class="type-tag">.tar</span>
-    <span class="type-tag">cualquier formato</span>
-  </div>
-</div>
-<input type="file" id="file-input" accept="*/*"/>
-
-<!-- Progress -->
-<div class="progress-wrap" id="progress-wrap">
-  <div class="progress-header">
-    <span class="progress-filename" id="progress-filename">archivo.zip</span>
-    <span class="progress-pct" id="progress-pct">0%</span>
-  </div>
-  <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar"></div></div>
-  <p class="progress-status" id="progress-status">Preparando upload…</p>
-</div>
-
-<!-- Result -->
-<div class="result-box" id="result-box">
-  <div class="result-label">✓ archivo subido · link de descarga</div>
-  <div class="result-url-row">
-    <div class="result-url" id="result-url"></div>
-    <button class="copy-btn" onclick="copyUrl()">COPIAR</button>
-  </div>
-  <div class="result-meta">
-    <span id="result-name">—</span>
-    <span id="result-size">—</span>
-  </div>
-</div>
-
-<!-- History -->
-<div class="history-section">
-  <div class="section-title">
-    <span>historial de esta sesión</span>
-    <button class="clear-btn" onclick="clearHistory()">limpiar</button>
-  </div>
-  <div class="history-list" id="history-list"></div>
-</div>
-
-<!-- Toast -->
-<div class="toast" id="toast"></div>
-
-<footer>
-  Powered by <a href="https://supabase.com" target="_blank">Supabase Storage</a> &amp; <a href="https://pages.github.com" target="_blank">GitHub Pages</a> &mdash; DropShare no almacena nada en sus propios servidores.
-</footer>
-
-<script>
-const STORAGE_KEY = 'dropshare_config';
-const HISTORY_KEY = 'dropshare_history';
-
-// --- Config ---
-function loadConfig() {
-  try {
-    const c = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    if (c.url) document.getElementById('sb-url').value = c.url;
-    if (c.key) document.getElementById('sb-key').value = c.key;
-    if (c.bucket) document.getElementById('sb-bucket').value = c.bucket;
-  } catch(e) {}
-}
-
-function getConfig() {
-  return {
-    url: document.getElementById('sb-url').value.trim().replace(/\/$/, ''),
-    key: document.getElementById('sb-key').value.trim(),
-    bucket: document.getElementById('sb-bucket').value.trim() || 'files'
-  };
-}
-
-function saveConfig() {
-  const c = getConfig();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(c));
-  const badge = document.getElementById('saved-badge');
-  badge.classList.add('show');
-  setTimeout(() => badge.classList.remove('show'), 2000);
-}
-
-// --- Toast ---
-function showToast(msg, duration = 4000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
-}
-
-// --- Drag & Drop ---
-const zone = document.getElementById('upload-zone');
-zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-zone.addEventListener('drop', e => {
-  e.preventDefault();
-  zone.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) uploadFile(file);
-});
-
-document.getElementById('file-input').addEventListener('change', e => {
-  if (e.target.files[0]) uploadFile(e.target.files[0]);
-  e.target.value = '';
-});
-
-// --- Format helpers ---
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-}
-
-function formatDate(ts) {
-  return new Date(ts).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-}
-
-function slugify(name) {
-  const ts = Date.now();
-  const safe = name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-  return ts + '_' + safe;
-}
-
-// --- Upload ---
-async function uploadFile(file) {
-  const { url, key, bucket } = getConfig();
-  if (!url || !key) {
-    showToast('Primero completá y guardá la configuración de Supabase');
-    document.getElementById('sb-url').focus();
-    return;
-  }
-
-  const filename = slugify(file.name);
-  const uploadUrl = `${url}/storage/v1/object/${bucket}/${filename}`;
-
-  // Show progress
-  document.getElementById('progress-wrap').classList.add('active');
-  document.getElementById('result-box').classList.remove('active');
-  document.getElementById('progress-filename').textContent = file.name;
-  setProgress(0, 'Subiendo…');
-
-  try {
-    await uploadXHR(file, uploadUrl, key, (pct) => setProgress(pct, `Subiendo… ${pct}%`));
-
-    // Build public URL
-    const publicUrl = `${url}/storage/v1/object/public/${bucket}/${filename}`;
-
-    setProgress(100, '¡Listo!');
-
-    setTimeout(() => {
-      document.getElementById('progress-wrap').classList.remove('active');
-      showResult(publicUrl, file.name, file.size);
-      addToHistory({ name: file.name, url: publicUrl, size: file.size, ts: Date.now() });
-    }, 600);
-
-  } catch(err) {
-    document.getElementById('progress-wrap').classList.remove('active');
-    showToast('Error al subir: ' + (err.message || 'Error desconocido'));
-    console.error(err);
-  }
-}
-
-function uploadXHR(file, url, key, onProgress) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url);
-    xhr.setRequestHeader('Authorization', 'Bearer ' + key);
-    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-    xhr.setRequestHeader('x-upsert', 'true');
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100));
-    };
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve(JSON.parse(xhr.responseText));
-      else {
-        let msg = xhr.statusText;
-        try { msg = JSON.parse(xhr.responseText).message || msg; } catch(e) {}
-        reject(new Error(`HTTP ${xhr.status}: ${msg}`));
+      0%,
+      100% {
+        opacity: 1
       }
-    };
-    xhr.onerror = () => reject(new Error('Error de red'));
-    xhr.send(file);
-  });
-}
+      
+      50% {
+        opacity: 0.35
+      }
+    }
+    
+    .tagline {
+      margin-top: 2rem;
+      font-size: 2.5rem;
+      font-weight: 300;
+      line-height: 1.15;
+      letter-spacing: -0.03em
+    }
+    
+    .tagline em {
+      font-style: normal;
+      color: var(--accent)
+    }
+    
+    .subtitle {
+      margin-top: 0.6rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap
+    }
+    
+    .badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--muted2)
+    }
+    
+    /* PANELS */
+    .panel {
+      width: 100%;
+      max-width: 700px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
+      transition: all 0.15s;
+    }
+    
+    .panel-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      /*margin-bottom: 1rem;*/
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none
+    }
+    
+    .panel-title svg {
+      width: 10px;
+      height: 10px;
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 2;
+      transition: transform 0.2s;
+      flex-shrink: 0
+    }
+    
+    .panel-title.collapsed svg {
+      transform: rotate(-90deg)
+    }
+    
+    .panel-body.collapsed {
+      display: none
+    }
+    
+    /* GRIDS */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.9rem
+    }
+    
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.9rem
+    }
+    
+    /* INPUTS */
+    label {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 5px
+    }
+    
+    input[type=text],
+    input[type=password],
+    input[type=number],
+    select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.55rem 0.75rem;
+      outline: none;
+      transition: border-color 0.15s;
+      appearance: none;
+      -webkit-appearance: none
+    }
+    
+    input:focus,
+    select:focus {
+      border-color: var(--accent)
+    }
+    
+    select {
+      background-image: url("image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+      cursor: pointer
+    }
+    
+    .hint {
+      margin-top: 0.6rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.6
+    }
+    
+    .hint a {
+      color: var(--accent);
+      text-decoration: none
+    }
+    
+    .hint a:hover {
+      text-decoration: underline
+    }
+    
+    /* TOGGLE */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px
+    }
+    
+    .toggle-label {
+      font-size: 0.82rem;
+      font-weight: 400;
+      color: var(--text)
+    }
+    
+    .toggle-sub {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 2px;
+      line-height: 1.4
+    }
+    
+    .switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0
+    }
+    
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0
+    }
+    
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border2);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 3px;
+      top: 3px;
+      background: #888;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+    
+    .switch input:checked+.slider {
+      background: var(--accent)
+    }
+    
+    .switch input:checked+.slider::before {
+      transform: translateX(16px);
+      background: var(--bg)
+    }
+    
+    /* BUTTONS */
+    .btn {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap
+    }
+    
+    .btn:hover {
+      background: var(--accent);
+      color: var(--bg)
+    }
+    
+    .saved-badge {
+      display: inline-block;
+      margin-left: 0.75rem;
+      font-size: 0.68rem;
+      color: var(--accent);
+      opacity: 0;
+      transition: opacity 0.3s;
+      display: none;
+    }
+    
+    .saved-badge.show {
+      display: block;
+      opacity: 1;
+    }
+    
+    /* SIZE PRESETS */
+    .size-presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 0.75rem
+    }
+    
+    .preset-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.04em;
+      padding: 4px 10px;
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--muted2);
+      cursor: pointer;
+      background: transparent;
+      transition: all 0.15s;
+    }
+    
+    .preset-btn:hover {
+      border-color: var(--accent-dim);
+      color: var(--accent-dim)
+    }
+    
+    .preset-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-bg)
+    }
+    
+    /* AGENT TABLE - PUNTO 1: SCROLL HORIZONTAL */
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-top: 0.75rem
+    }
+    
+    .table-wrap::-webkit-scrollbar {
+      height: 4px
+    }
+    
+    .table-wrap::-webkit-scrollbar-track {
+      background: var(--surface2)
+    }
+    
+    .table-wrap::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 2px
+    }
+    
+    .agent-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 580px;
+      font-size: 0.72rem
+    }
+    
+    .agent-table th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 400;
+      padding: 4px 8px 6px;
+      border-bottom: 1px solid var(--border);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase
+    }
+    
+    .agent-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle
+    }
+    
+    .agent-table tr:last-child td {
+      border-bottom: none
+    }
+    
+    .agent-table tr:hover td {
+      background: var(--surface2)
+    }
+    
+    .size-pill {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      padding: 2px 7px;
+      border-radius: 2px;
+      white-space: nowrap
+    }
+    
+    .pill-green {
+      background: rgba(200, 240, 74, 0.12);
+      color: var(--accent-dim)
+    }
+    
+    .pill-warn {
+      background: rgba(240, 160, 48, 0.12);
+      color: var(--warn)
+    }
+    
+    .pill-red {
+      background: rgba(255, 82, 82, 0.12);
+      color: var(--danger)
+    }
+    
+    .apply-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.55rem;
+      padding: 2px 7px;
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .apply-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+    
+    /* TTL */
+    .ttl-options {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 0.75rem
+    }
+    
+    .ttl-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.04em;
+      padding: 5px 12px;
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--muted2);
+      cursor: pointer;
+      background: transparent;
+      transition: all 0.15s;
+    }
+    
+    .ttl-btn:hover {
+      border-color: var(--accent-dim);
+      color: var(--accent-dim)
+    }
+    
+    .ttl-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-bg)
+    }
+    
+    /* UPLOAD ZONE */
+    .upload-zone {
+      width: 100%;
+      max-width: 700px;
+      position: relative;
+      z-index: 1;
+      border: 1px dashed var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 3.5rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: var(--surface);
+    }
+    
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-bg)
+    }
+    
+    .upload-icon {
+      width: 46px;
+      height: 46px;
+      margin: 0 auto 1.1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface2);
+      transition: border-color 0.2s;
+    }
+    
+    .upload-zone:hover .upload-icon,
+    .upload-zone.drag-over .upload-icon {
+      border-color: var(--accent)
+    }
+    
+    .upload-icon svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 1.5
+    }
+    
+    .upload-main {
+      font-size: 0.95rem;
+      font-weight: 400;
+      margin-bottom: 0.35rem
+    }
+    
+    .upload-sub {
+      font-size: 0.78rem;
+      color: var(--muted)
+    }
+    
+    .upload-limit {
+      display: inline-block;
+      margin-top: 0.75rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.62rem;
+      padding: 3px 10px;
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--muted2)
+    }
+    
+    .upload-limit span {
+      color: var(--accent)
+    }
+    
+    #file-input {
+      display: none
+    }
+    
+    /* PROGRESS */
+    .progress-wrap {
+      width: 100%;
+      max-width: 700px;
+      position: relative;
+      z-index: 1;
+      margin-top: 1.25rem;
+      display: none
+    }
+    
+    .progress-wrap.active {
+      display: block
+    }
+    
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem
+    }
+    
+    .progress-filename {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 70%
+    }
+    
+    .progress-pct {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--accent)
+    }
+    
+    .progress-bar-bg {
+      height: 2px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden
+    }
+    
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.15s ease;
+      border-radius: 2px;
+    }
+    
+    .progress-status {
+      margin-top: 0.45rem;
+      font-size: 0.72rem;
+      color: var(--muted)
+    }
+    
+    /* RESULT */
+    .result-box {
+      width: 100%;
+      max-width: 700px;
+      position: relative;
+      z-index: 1;
+      margin-top: 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+      display: none;
+      animation: slideUp 0.3s ease
+    }
+    
+    .result-box.active {
+      display: block
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+      
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+    
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.9rem;
+      flex-wrap: wrap;
+      gap: 8px
+    }
+    
+    .result-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent)
+    }
+    
+    .result-ttl-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      padding: 2px 8px;
+      border-radius: 2px;
+      border: 1px solid
+    }
+    
+    .result-ttl-badge.permanent {
+      border-color: var(--accent-dim);
+      color: var(--accent-dim)
+    }
+    
+    .result-ttl-badge.temporary {
+      border-color: var(--warn);
+      color: var(--warn)
+    }
+    
+    .result-url-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+      margin-bottom: 0.9rem
+    }
+    
+    .result-url {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.66rem;
+      color: var(--text);
+      padding: 0.6rem 0.75rem;
+      word-break: break-all;
+      line-height: 1.55;
+      cursor: text;
+      user-select: all
+    }
+    
+    .copy-url-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: var(--bg);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 0 1rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+    }
+    
+    .copy-url-btn:hover {
+      opacity: 0.85
+    }
+    
+    .agent-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 0.9rem
+    }
+    
+    .agent-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.04em;
+      padding: 5px 11px;
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--muted2);
+      cursor: pointer;
+      background: transparent;
+      transition: all 0.15s;
+    }
+    
+    .agent-btn:hover {
+      border-color: var(--accent-dim);
+      color: var(--accent-dim);
+      background: var(--accent-bg)
+    }
+    
+    .agent-btn.copied {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+    
+    .result-meta {
+      display: flex;
+      gap: 1.25rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      flex-wrap: wrap
+    }
+    
+    .meta-key {
+      color: var(--muted);
+      margin-right: 2px
+    }
+    
+    .meta-val {
+      color: var(--muted2)
+    }
+    
+    /* HISTORY */
+    .history-section {
+      width: 100%;
+      max-width: 700px;
+      position: relative;
+      z-index: 1;
+      margin-top: 2.5rem
+    }
+    
+    .section-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+    
+    .clear-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: color 0.15s;
+    }
+    
+    .clear-btn:hover {
+      color: var(--danger)
+    }
+    
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px
+    }
+    
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.65rem 1rem;
+      transition: border-color 0.15s;
+    }
+    
+    .history-item:hover {
+      border-color: var(--border2)
+    }
+    
+    .history-icon {
+      width: 30px;
+      height: 30px;
+      background: var(--surface2);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0
+    }
+    
+    .history-icon svg {
+      width: 13px;
+      height: 13px;
+      stroke: var(--accent-dim);
+      fill: none;
+      stroke-width: 1.5
+    }
+    
+    .history-info {
+      flex: 1;
+      min-width: 0
+    }
+    
+    .history-name {
+      font-size: 0.78rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+    
+    .history-date {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 1px
+    }
+    
+    .history-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0
+    }
+    
+    .history-size {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--muted)
+    }
+    
+    .history-ttl {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.55rem;
+      padding: 1px 6px;
+      border-radius: 2px;
+      border: 1px solid
+    }
+    
+    .ttl-perm {
+      border-color: #333;
+      color: var(--muted)
+    }
+    
+    .ttl-temp {
+      border-color: rgba(240, 160, 48, 0.4);
+      color: var(--warn)
+    }
+    
+    .history-copy {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--muted2);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      padding: 3px 9px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .history-copy:hover {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+    
+    .empty-history {
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius)
+    }
+    
+    /* TOAST - PUNTO 3: MEJORA PARA MOBILE */
+    .toast {
+      position: fixed;
+      bottom: calc(2rem + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius);
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 100;
+      pointer-events: none;
+      max-width: 90%;
+      text-align: center
+    }
+    
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0)
+    }
+    
+    .toast.error {
+      background: var(--danger);
+      color: #fff
+    }
+    
+    .toast.success {
+      background: var(--accent);
+      color: var(--bg)
+    }
+    
+    .toast.info {
+      background: var(--info);
+      color: #fff
+    }
+    
+    footer {
+      margin-top: 4rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      line-height: 2
+    }
+    
+    footer a {
+      color: var(--accent-dim);
+      text-decoration: none
+    }
+    
+    footer a:hover {
+      text-decoration: underline
+    }
+    
+    /* PUNTO 2: TABS PARA SUPABASE */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      /*padding-bottom: 0.5rem;*/
+    }
+    
+    .tab-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.4rem 0.9rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .tab-btn:hover {
+      border-color: var(--accent-dim);
+      color: var(--accent-dim)
+    }
+    
+    .tab-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-bg)
+    }
+    
+    .tab-content {
+      display: none;
+      margin-top: 0.75rem
+    }
+    
+    .tab-content.active {
+      display: block
+    }
+    
+    .tab-btn svg {
+      width: 14px;
+      height: 14px;
+      margin-right: 6px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      vertical-align: middle;
+    }
+    
+    .config-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.65rem;
+      padding: 3px 8px;
+      border-radius: 2px;
+      margin-left: 0.5rem
+    }
+    
+    .config-status.default {
+      background: rgba(200, 240, 74, 0.12);
+      color: var(--accent-dim)
+    }
+    
+    .config-status.custom {
+      background: rgba(91, 163, 245, 0.12);
+      color: var(--info)
+    }
+    
+    @media(max-width:520px) {
+      .tagline {
+        font-size: 1.9rem
+      }
+      
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr
+      }
+      
+      .result-url-row {
+        flex-direction: column
+      }
+      
+      .copy-url-btn {
+        padding: 0.55rem
+      }
+      
+      .tabs {
+        flex-direction: column
+      }
+      
+      .tab-btn {
+        width: 100%;
+        text-align: left
+      }
+    }
+  </style>
+</head>
 
-function setProgress(pct, status) {
-  document.getElementById('progress-bar').style.width = pct + '%';
-  document.getElementById('progress-pct').textContent = pct + '%';
-  document.getElementById('progress-status').textContent = status;
-}
-
-// --- Result ---
-function showResult(url, name, size) {
-  document.getElementById('result-url').textContent = url;
-  document.getElementById('result-name').textContent = name;
-  document.getElementById('result-size').textContent = formatSize(size);
-  document.getElementById('result-box').classList.add('active');
-}
-
-function copyUrl() {
-  const url = document.getElementById('result-url').textContent;
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.querySelector('.copy-btn');
-    btn.textContent = '✓ COPIADO';
-    setTimeout(() => btn.textContent = 'COPIAR', 2000);
-  }).catch(() => showToast('No se pudo copiar automáticamente'));
-}
-
-// --- History ---
-function loadHistory() {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
-  catch(e) { return []; }
-}
-
-function saveHistory(arr) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(arr.slice(0, 50)));
-}
-
-function addToHistory(item) {
-  const arr = loadHistory();
-  arr.unshift(item);
-  saveHistory(arr);
-  renderHistory();
-}
-
-function clearHistory() {
-  localStorage.removeItem(HISTORY_KEY);
-  renderHistory();
-}
-
-function renderHistory() {
-  const list = document.getElementById('history-list');
-  const arr = loadHistory();
-  if (arr.length === 0) {
-    list.innerHTML = '<div class="empty-history">Todavía no subiste ningún archivo en esta sesión</div>';
-    return;
-  }
-  list.innerHTML = arr.map(item => `
-    <div class="history-item">
-      <div class="history-icon">
-        <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-      </div>
-      <div class="history-info">
-        <div class="history-name">${escapeHtml(item.name)}</div>
-        <div class="history-date">${formatDate(item.ts)}</div>
-      </div>
-      <span class="history-size">${formatSize(item.size)}</span>
-      <button class="history-copy" onclick="copyHistoryUrl('${escapeAttr(item.url)}', this)">copiar link</button>
+<body>
+  <header>
+    <div class="logo"><span class="logo-dot"></span> DropShare</div>
+    <h1 class="tagline">Subí. Compartí.<br /><em>Que el agente descargue.</em></h1>
+    <div class="subtitle">
+      <span>Hosting directo vía Supabase Storage</span>
+      <span class="badge">FASE 2</span>
+      <span class="badge">AI-READY</span>
     </div>
-  `).join('');
-}
-
-function copyHistoryUrl(url, btn) {
-  navigator.clipboard.writeText(url).then(() => {
-    btn.textContent = '✓ copiado';
-    setTimeout(() => btn.textContent = 'copiar link', 2000);
-  });
-}
-
-function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function escapeAttr(s) {
-  return s.replace(/'/g, "\\'");
-}
-
-// --- Init ---
-loadConfig();
-renderHistory();
-</script>
+  </header>
+  
+  <!-- SUPABASE CONFIG - PUNTO 2: TABS OPCIONALES -->
+  <div class="panel" id="panel-supabase">
+    <div class="panel-title" onclick="togglePanel('supabase')">
+      <svg viewBox="0 0 10 10">
+        <polyline points="1,3 5,7 9,3" />
+      </svg>
+      configuración supabase
+      <span class="config-status default" id="config-status">● default</span>
+    </div>
+    <div class="panel-body" id="body-supabase">
+      
+      
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="default">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          Default Hosting
+        </button>
+        <button class="tab-btn" data-tab="custom">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          Custom Supabase
+        </button>
+      </div>
+      
+      
+      <div class="tab-content active" id="tab-default">
+        <p class="hint">✅ <strong>Usando el bucket preconfigurado del proyecto.</strong> Listo para subir sin tocar nada. Ideal para pruebas rápidas y uso inmediato.</p>
+        <p class="hint" style="margin-top:0.5rem">📦 Bucket: <code style="color:var(--accent-dim)">files</code> · Región: <code style="color:var(--accent-dim)">us-east-1</code></p>
+      </div>
+      
+      
+      <div class="tab-content" id="tab-custom">
+        <div class="grid-2">
+          <div>
+            <label for="sb-url">Project URL</label>
+            <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co" />
+          </div>
+          <div>
+            <label for="sb-key">Anon Key</label>
+            <input type="password" id="sb-key" placeholder="eyJhbGci..." />
+          </div>
+        </div>
+        <div style="margin-top:0.9rem">
+          <label for="sb-bucket">Nombre del bucket</label>
+          <input type="text" id="sb-bucket" placeholder="files" style="max-width:200px" />
+        </div>
+        <p class="hint">
+          Encontrás estos datos en <a href="https://supabase.com/dashboard" target="_blank">supabase.com → Project Settings → API</a>.
+          El bucket debe ser <strong style="color:var(--text);font-weight:500">público</strong> para que los links funcionen sin autenticación.
+        </p>
+      </div>
+      
+      
+      <div style="margin-top:1rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="saveConfig()">Guardar configuración</button>
+        <span class="saved-badge" id="saved-badge">✓ guardado</span>
+      </div>
+    </div>
+  </div>
+  
+  
+  <!-- SIZE LIMIT + AGENT REFERENCE -->
+  <div class="panel" id="panel-size">
+    <div class="panel-title" onclick="togglePanel('size')">
+      <svg viewBox="0 0 10 10">
+        <polyline points="1,3 5,7 9,3" />
+      </svg>
+      límite de tamaño de archivo
+    </div>
+    <div class="panel-body" id="body-size">
+      <div class="grid-2" style="align-items:end">
+        <div>
+          <label for="max-size-val">Tamaño máximo permitido</label>
+          <input type="number" id="max-size-val" value="50" min="1" max="5000" style="max-width:120px" />
+        </div>
+        <div>
+          <label for="max-size-unit">Unidad</label>
+          <select id="max-size-unit" style="max-width:100px">
+            <option value="MB" selected>MB</option>
+            <option value="GB">GB</option>
+          </select>
+        </div>
+      </div>
+      <div class="size-presets">
+        <span style="font-size:0.68rem;color:var(--muted);margin-right:4px;line-height:26px">Presets:</span>
+        <button class="preset-btn" onclick="setMaxSize(5,'MB')">5 MB</button>
+        <button class="preset-btn" onclick="setMaxSize(10,'MB')">10 MB</button>
+        <button class="preset-btn" onclick="setMaxSize(20,'MB')">20 MB</button>
+        <button class="preset-btn active" onclick="setMaxSize(50,'MB')">50 MB</button>
+        <button class="preset-btn" onclick="setMaxSize(100,'MB')">100 MB</button>
+        <button class="preset-btn" onclick="setMaxSize(500,'MB')">500 MB</button>
+        <button class="preset-btn" onclick="setMaxSize(1,'GB')">1 GB</button>
+      </div>
+      <p class="hint" style="margin-top:1rem">Referencia de límites por agente/plataforma — hacé click en <em style="font-style:italic">aplicar</em> para usar ese límite:</p>
+      
+      
+      <!-- PUNTO 1: TABLA CON SCROLL HORIZONTAL -->
+      <div class="table-wrap">
+        <table class="agent-table">
+          <thead>
+            <tr>
+              <th>Agente / Plataforma</th>
+              <th>Límite recomendado</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Claude via URL (este método)</td>
+              <td><span class="size-pill pill-green">sin límite práctico</span></td>
+              <td><span class="size-pill pill-green">recomendado</span></td>
+              <td><button class="apply-btn" onclick="applySize(500,'MB','Claude via URL')">aplicar</button></td>
+            </tr>
+            <tr>
+              <td>Claude.ai (upload directo)</td>
+              <td><span class="size-pill pill-green">~10 MB</span></td>
+              <td><span class="size-pill pill-green">estable</span></td>
+              <td><button class="apply-btn" onclick="applySize(10,'MB','Claude upload directo')">aplicar</button></td>
+            </tr>
+            <tr>
+              <td>Vercel AI / v0</td>
+              <td><span class="size-pill pill-green">sin límite</span></td>
+              <td><span class="size-pill pill-green">estable vía URL</span></td>
+              <td><button class="apply-btn" onclick="applySize(1,'GB','Vercel AI / v0')">aplicar</button></td>
+            </tr>
+            <tr>
+              <td>ChatGPT / GPT-4o</td>
+              <td><span class="size-pill pill-green">~20 MB</span></td>
+              <td><span class="size-pill pill-warn">varía</span></td>
+              <td><button class="apply-btn" onclick="applySize(20,'MB','ChatGPT')">aplicar</button></td>
+            </tr>
+            <tr>
+              <td>Gemini (Google)</td>
+              <td><span class="size-pill pill-green">~20 MB</span></td>
+              <td><span class="size-pill pill-warn">varía</span></td>
+              <td><button class="apply-btn" onclick="applySize(20,'MB','Gemini')">aplicar</button></td>
+            </tr>
+            <tr>
+              <td>GitHub Copilot / Codespaces</td>
+              <td><span class="size-pill pill-warn">~100 MB</span></td>
+              <td><span class="size-pill pill-warn">inconsistente</span></td>
+              <td><button class="apply-btn" onclick="applySize(100,'MB','GitHub Copilot')">aplicar</button></td>
+            </tr>
+            <tr>
+              <td>arena.ai</td>
+              <td><span class="size-pill pill-warn">~50 MB</span></td>
+              <td><span class="size-pill pill-red">trunca archivos</span></td>
+              <td><button class="apply-btn" onclick="applySize(50,'MB','Arena.ai')">aplicar</button></td>
+            </tr>
+            <tr>
+              <td>Google Drive compartido</td>
+              <td><span class="size-pill pill-warn">~750 MB/día</span></td>
+              <td><span class="size-pill pill-red">falla en agentes</span></td>
+              <td><button class="apply-btn" onclick="applySize(100,'MB','Google Drive')">aplicar</button></td>
+            </tr>
+            <tr>
+              <td>AWS S3 presigned / temporal</td>
+              <td><span class="size-pill pill-warn">5 GB (por parte)</span></td>
+              <td><span class="size-pill pill-red">falla frecuente</span></td>
+              <td><button class="apply-btn" onclick="applySize(500,'MB','AWS S3')">aplicar</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      
+      <p class="hint" style="margin-top:0.75rem">
+        Plan gratuito de Supabase Storage: <strong style="color:var(--text)">1 GB</strong> almacenado · <strong style="color:var(--text)">2 GB</strong> transferencia/mes.
+      </p>
+    </div>
+  </div>
+  
+  
+  <!-- MODE: TEMP + PASSWORD -->
+  <div class="panel" id="panel-mode">
+    <div class="panel-title" onclick="togglePanel('mode')">
+      <svg viewBox="0 0 10 10">
+        <polyline points="1,3 5,7 9,3" />
+      </svg>
+      modo del archivo
+    </div>
+    <div class="panel-body" id="body-mode">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Archivo temporal</div>
+          <div class="toggle-sub">Se sube a la carpeta <code style="color:var(--accent-dim);font-size:0.7rem">temp/</code> con la fecha de expiración en el nombre.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-temp" onchange="onTempToggle()" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div id="ttl-section" style="display:none;margin-top:1rem">
+        <label>Tiempo de expiración</label>
+        <div class="ttl-options">
+          <button class="ttl-btn active" onclick="setTTL(1,this)">1 hora</button>
+          <button class="ttl-btn" onclick="setTTL(6,this)">6 horas</button>
+          <button class="ttl-btn" onclick="setTTL(24,this)">24 horas</button>
+          <button class="ttl-btn" onclick="setTTL(72,this)">3 días</button>
+          <button class="ttl-btn" onclick="setTTL(168,this)">7 días</button>
+        </div>
+        <p class="hint">Para borrado automático: activá un <a href="https://supabase.com/docs/guides/functions" target="_blank">cron job en Supabase Edge Functions</a> que elimine archivos cuyo nombre de carpeta tenga fecha vencida.</p>
+      </div>
+      <div class="toggle-row" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+        <div>
+          <div class="toggle-label">Protección con contraseña <span style="font-size:0.68rem;color:var(--muted);font-weight:300">(opcional)</span></div>
+          <div class="toggle-sub">Desactivado por defecto — los agentes de IA necesitan links directos sin fricción.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-pwd" onchange="onPwdToggle()" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div id="pwd-section" style="display:none;margin-top:0.75rem">
+        <label for="pwd-input">Contraseña</label>
+        <input type="text" id="pwd-input" placeholder="clave de acceso..." style="max-width:280px" />
+        <p class="hint">La contraseña se incorpora como hash en el nombre del archivo. No se almacena en el servidor.</p>
+      </div>
+    </div>
+  </div>
+  
+  
+  <!-- UPLOAD ZONE -->
+  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" />
+        <line x1="12" y1="3" x2="12" y2="15" />
+      </svg>
+    </div>
+    <p class="upload-main">Arrastrá tu archivo acá o hacé click para elegir</p>
+    <p class="upload-sub">Cualquier formato · Links directos sin redirecciones · AI-ready</p>
+    <div class="upload-limit">Límite actual: <span id="limit-display">50 MB</span></div>
+  </div>
+  <input type="file" id="file-input" accept="*/*" />
+  
+  
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-header">
+      <span class="progress-filename" id="progress-filename"></span>
+      <span class="progress-pct" id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progress-bar"></div>
+    </div>
+    <p class="progress-status" id="progress-status">Preparando…</p>
+  </div>
+  
+  
+  <!-- RESULT -->
+  <div class="result-box" id="result-box">
+    <div class="result-header">
+      <div class="result-label">✓ archivo subido · link de descarga</div>
+      <span class="result-ttl-badge permanent" id="result-ttl-badge">permanente</span>
+    </div>
+    <div class="result-url-row">
+      <div class="result-url" id="result-url"></div>
+      <button class="copy-url-btn" onclick="copyResult('url')">COPIAR URL</button>
+    </div>
+    <div class="agent-actions">
+      <button class="agent-btn" id="btn-md" onclick="copyResult('markdown')">📋 Markdown</button>
+      <button class="agent-btn" id="btn-inst" onclick="copyResult('instruccion')">🤖 Instrucción para agente</button>
+      <button class="agent-btn" id="btn-curl" onclick="copyResult('curl')">⚡ cURL</button>
+      <button class="agent-btn" id="btn-meta" onclick="copyResult('meta')">📄 Info completa</button>
+    </div>
+    <div class="result-meta">
+      <span><span class="meta-key">archivo:</span><span class="meta-val" id="meta-name">—</span></span>
+      <span><span class="meta-key">tamaño:</span><span class="meta-val" id="meta-size">—</span></span>
+      <span><span class="meta-key">tipo:</span><span class="meta-val" id="meta-mime">—</span></span>
+      <span><span class="meta-key">subido:</span><span class="meta-val" id="meta-date">—</span></span>
+    </div>
+  </div>
+  
+  
+  <!-- HISTORY -->
+  <div class="history-section">
+    <div class="section-title">
+      <span>historial</span>
+      <button class="clear-btn" onclick="clearHistory()">limpiar todo</button>
+    </div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+  
+  
+  <div class="toast" id="toast"></div>
+  
+  
+  <footer>
+    <div>Powered by <a href="https://supabase.com" target="_blank">Supabase Storage</a> &amp; <a href="https://pages.github.com" target="_blank">GitHub Pages</a></div>
+    <div>Links directos sin redirecciones · sin servidores propios · AI-ready</div>
+  </footer>
+  
+  
+  <script>
+    const CFG_KEY = 'ds_config_v2';
+    const HIST_KEY = 'ds_history_v2';
+    
+    
+    // PUNTO 2: ESTADO CON PROVEEDOR
+    let state = {
+      provider: 'default', // 'default' | 'custom'
+      maxSizeVal: 50,
+      maxSizeUnit: 'MB',
+      isTemp: false,
+      ttlHours: 1,
+      usePwd: false,
+      lastResult: null
+    };
+    
+    
+    // PUNTO 2: CONFIGURACIÓN DEFAULT PRE-CONFIGURADA
+    const DEFAULT_CONFIG = {
+      url: 'https://your-project.supabase.co',
+      key: 'your-anon-public-key',
+      bucket: 'files'
+    };
+    
+    
+    // ── PANELS ──
+    function togglePanel(id) {
+      document.getElementById('body-' + id).classList.toggle('collapsed');
+      document.querySelector('#panel-' + id + ' .panel-title').classList.toggle('collapsed');
+    }
+    
+    
+    // ── CONFIG ──
+    function loadConfig() {
+      try {
+        // Cargar proveedor (PUNTO 2)
+        const savedProvider = localStorage.getItem(CFG_KEY + '_provider') || 'default';
+        state.provider = savedProvider;
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.tab === savedProvider);
+        });
+        document.querySelectorAll('.tab-content').forEach(c => {
+          c.classList.toggle('active', c.id === 'tab-' + savedProvider);
+        });
+        updateConfigStatus();
+        
+        
+        const c = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+        if (c.url) document.getElementById('sb-url').value = c.url;
+        if (c.key) document.getElementById('sb-key').value = c.key;
+        if (c.bucket) document.getElementById('sb-bucket').value = c.bucket;
+        if (c.maxSizeVal) { state.maxSizeVal = c.maxSizeVal;
+          document.getElementById('max-size-val').value = c.maxSizeVal; }
+        if (c.maxSizeUnit) { state.maxSizeUnit = c.maxSizeUnit;
+          document.getElementById('max-size-unit').value = c.maxSizeUnit; }
+        updateLimitDisplay();
+      } catch (e) {}
+    }
+    
+    
+    function getSupabase() {
+      // PUNTO 2: RETORNAR DEFAULT O CUSTOM SEGÚN TAB
+      if (state.provider === 'default') {
+        return DEFAULT_CONFIG;
+      }
+      return {
+        url: document.getElementById('sb-url').value.trim().replace(/\/$/, ''),
+        key: document.getElementById('sb-key').value.trim(),
+        bucket: document.getElementById('sb-bucket').value.trim() || 'files'
+      };
+    }
+    
+    
+    function saveConfig() {
+      const sb = getSupabase();
+      localStorage.setItem(CFG_KEY, JSON.stringify({ ...sb, maxSizeVal: state.maxSizeVal, maxSizeUnit: state.maxSizeUnit }));
+      localStorage.setItem(CFG_KEY + '_provider', state.provider);
+      const badge = document.getElementById('saved-badge');
+      badge.classList.add('show');
+      setTimeout(() => badge.classList.remove('show'), 2200);
+      showToast('Configuración guardada', 'success');
+    }
+    
+    
+    // PUNTO 2: ACTUALIZAR BADGE DE ESTADO
+    function updateConfigStatus() {
+      const badge = document.getElementById('config-status');
+      if (state.provider === 'default') {
+        badge.textContent = '● default';
+        badge.className = 'config-status default';
+      } else {
+        badge.textContent = '● custom';
+        badge.className = 'config-status custom';
+      }
+    }
+    
+    
+    // ── TABS (PUNTO 2) ──
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        state.provider = tab;
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        updateConfigStatus();
+      });
+    });
+    
+    
+    // ── SIZE ──
+    // PUNTO 3: DEBOUNCE PARA INPUTS
+    let debounceTimer;
+    
+    function debouncedUpdateLimit() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updateLimitDisplay, 150);
+    }
+    
+    
+    function setMaxSize(val, unit) {
+      state.maxSizeVal = val;
+      state.maxSizeUnit = unit;
+      document.getElementById('max-size-val').value = val;
+      document.getElementById('max-size-unit').value = unit;
+      updateLimitDisplay();
+      document.querySelectorAll('.preset-btn').forEach(b => {
+        b.classList.toggle('active', b.textContent.trim() === `${val} ${unit}`);
+      });
+    }
+    
+    
+    function applySize(val, unit, agentName) {
+      setMaxSize(val, unit);
+      showToast(`Límite seteado: ${val} ${unit} · ${agentName}`, 'success');
+    }
+    
+    
+    function updateLimitDisplay() {
+      const val = parseInt(document.getElementById('max-size-val').value) || 50;
+      const unit = document.getElementById('max-size-unit').value;
+      state.maxSizeVal = val;
+      state.maxSizeUnit = unit;
+      document.getElementById('limit-display').textContent = `${val} ${unit}`;
+    }
+    
+    
+    document.getElementById('max-size-val').addEventListener('input', debouncedUpdateLimit);
+    document.getElementById('max-size-unit').addEventListener('change', updateLimitDisplay);
+    
+    
+    function getMaxBytes() {
+      return state.maxSizeUnit === 'GB' ?
+        state.maxSizeVal * 1024 * 1024 * 1024 :
+        state.maxSizeVal * 1024 * 1024;
+    }
+    
+    
+    // ── MODE TOGGLES ──
+    function onTempToggle() {
+      state.isTemp = document.getElementById('toggle-temp').checked;
+      document.getElementById('ttl-section').style.display = state.isTemp ? 'block' : 'none';
+    }
+    
+    
+    function setTTL(hours, btn) {
+      state.ttlHours = hours;
+      document.querySelectorAll('.ttl-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    
+    
+    function onPwdToggle() {
+      state.usePwd = document.getElementById('toggle-pwd').checked;
+      document.getElementById('pwd-section').style.display = state.usePwd ? 'block' : 'none';
+    }
+    
+    
+    // ── DRAG & DROP ──
+    const zone = document.getElementById('upload-zone');
+    zone.addEventListener('dragover', e => { e.preventDefault();
+      zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      const f = e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+    document.getElementById('file-input').addEventListener('change', e => {
+      if (e.target.files[0]) handleFile(e.target.files[0]);
+      e.target.value = '';
+    });
+    
+    
+    // ── UPLOAD ──
+    function handleFile(file) {
+      if (file.size > getMaxBytes()) {
+        showToast(`Archivo muy grande: ${formatSize(file.size)} · Límite: ${state.maxSizeVal} ${state.maxSizeUnit}`, 'error');
+        return;
+      }
+      uploadFile(file);
+    }
+    
+    
+    async function uploadFile(file) {
+      const { url, key, bucket } = getSupabase();
+      
+      
+      // PUNTO 2: VALIDAR SOLO SI ES CUSTOM
+      if (state.provider === 'custom' && (!url || !key)) {
+        showToast('Completá y guardá la configuración de Supabase primero', 'error');
+        return;
+      }
+      
+      
+      const ts = Date.now();
+      const safe = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      let filename;
+      
+      
+      if (state.isTemp) {
+        const expAt = new Date(ts + state.ttlHours * 3600000);
+        const expStr = expAt.toISOString().slice(0, 10).replace(/-/g, '');
+        filename = `temp/exp${expStr}_${ts}_${safe}`;
+      } else {
+        filename = `files/${ts}_${safe}`;
+      }
+      
+      
+      if (state.usePwd) {
+        const pwd = document.getElementById('pwd-input').value.trim();
+        if (pwd) {
+          const hash = await simpleHash(pwd);
+          filename += `_k${hash}`;
+        }
+      }
+      
+      
+      const uploadUrl = `${url}/storage/v1/object/${bucket}/${encodeURIComponent(filename)}`;
+      
+      
+      document.getElementById('progress-wrap').classList.add('active');
+      document.getElementById('result-box').classList.remove('active');
+      document.getElementById('progress-filename').textContent = file.name;
+      setProgress(0, 'Preparando upload…');
+      
+      
+      try {
+        await uploadXHR(file, uploadUrl, key, pct => setProgress(pct, `Subiendo… ${pct}%`));
+        const publicUrl = `${url}/storage/v1/object/public/${bucket}/${encodeURIComponent(filename)}`;
+        setProgress(100, '¡Subido correctamente!');
+        
+        
+        setTimeout(() => {
+          document.getElementById('progress-wrap').classList.remove('active');
+          showResult({ url: publicUrl, name: file.name, size: file.size, mime: file.type || 'application/octet-stream', ts, isTemp: state.isTemp, ttlHours: state.ttlHours });
+        }, 500);
+      } catch (err) {
+        document.getElementById('progress-wrap').classList.remove('active');
+        showToast('Error al subir: ' + (err.message || 'Error desconocido'), 'error');
+        console.error(err);
+      }
+    }
+    
+    
+    function uploadXHR(file, url, key, onProgress) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+        xhr.setRequestHeader('Authorization', 'Bearer ' + key);
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+        xhr.setRequestHeader('x-upsert', 'true');
+        xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100)); };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) { try { resolve(JSON.parse(xhr.responseText)); } catch (e) { resolve({}); } }
+          else {
+            let msg = xhr.statusText;
+            try { msg = JSON.parse(xhr.responseText).message || msg; } catch (e) {}
+            reject(new Error(`HTTP ${xhr.status}: ${msg}`));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Error de red — verificá CORS en Supabase Storage'));
+        xhr.send(file);
+      });
+    }
+    
+    
+    function setProgress(pct, status) {
+      document.getElementById('progress-bar').style.width = pct + '%';
+      document.getElementById('progress-pct').textContent = pct + '%';
+      document.getElementById('progress-status').textContent = status;
+    }
+    
+    
+    // ── RESULT ──
+    function showResult(data) {
+      state.lastResult = data;
+      document.getElementById('result-url').textContent = data.url;
+      document.getElementById('meta-name').textContent = data.name;
+      document.getElementById('meta-size').textContent = formatSize(data.size);
+      document.getElementById('meta-mime').textContent = data.mime || '—';
+      document.getElementById('meta-date').textContent = formatDate(data.ts);
+      
+      
+      const badge = document.getElementById('result-ttl-badge');
+      if (data.isTemp) {
+        // PUNTO 3: MOSTRAR EXPIRACIÓN CALCULADA
+        const expDate = new Date(data.ts + data.ttlHours * 3600000);
+        const now = new Date();
+        const hoursLeft = Math.max(0, Math.round((expDate - now) / 3600000));
+        badge.textContent = `expira en ${hoursLeft}h`;
+        badge.className = 'result-ttl-badge temporary';
+      } else {
+        badge.textContent = 'permanente';
+        badge.className = 'result-ttl-badge permanent';
+      }
+      
+      
+      document.getElementById('result-box').classList.add('active');
+      addToHistory(data);
+    }
+    
+    
+    // ── COPY ACTIONS ──
+    function copyResult(type) {
+      const d = state.lastResult;
+      if (!d) return;
+      
+      
+      if (type === 'url') {
+        navigator.clipboard.writeText(d.url).then(() => {
+          const btn = document.querySelector('.copy-url-btn');
+          btn.textContent = '✓ COPIADO';
+          setTimeout(() => btn.textContent = 'COPIAR URL', 2000);
+          showToast('URL copiada al portapapeles', 'success');
+        });
+        return;
+      }
+      
+      
+      const texts = {
+        markdown: `[${d.name}](${d.url})`,
+        instruccion: `Por favor descargá el archivo "${d.name}" desde la siguiente URL directa y usalo en la tarea:
+${d.url}
+Tamaño: ${formatSize(d.size)} · Tipo MIME: ${d.mime}`,
+        curl: `curl -L -o "${d.name}" "${d.url}"`,
+        meta: `Archivo: ${d.name}
+URL: ${d.url}
+Tamaño: ${formatSize(d.size)}
+Tipo MIME: ${d.mime}
+Subido: ${formatDate(data.ts)}
+${d.isTemp ? 'Expiración: '+d.ttlHours+' hora(s)' : 'Permanente: sí'}`
+      };
+      
+      
+      const btnIds = { markdown: 'btn-md', instruccion: 'btn-inst', curl: 'btn-curl', meta: 'btn-meta' };
+      const text = texts[type];
+      if (!text) return;
+      
+      
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById(btnIds[type]);
+        const orig = btn.textContent;
+        btn.textContent = '✓ copiado';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = orig;
+          btn.classList.remove('copied'); }, 2000);
+        showToast('Contenido copiado al portapapeles', 'success');
+      }).catch(() => showToast('No se pudo copiar', 'error'));
+    }
+    
+    
+    // ── HISTORY ──
+    function loadHistory() {
+      try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch (e) { return []; }
+    }
+    
+    
+    function saveHistory(arr) { localStorage.setItem(HIST_KEY, JSON.stringify(arr.slice(0, 60))); }
+    
+    
+    function addToHistory(item) {
+      const arr = loadHistory();
+      arr.unshift(item);
+      saveHistory(arr);
+      renderHistory();
+    }
+    
+    
+    function clearHistory() {
+      if (!confirm('¿Limpiar todo el historial?')) return;
+      localStorage.removeItem(HIST_KEY);
+      renderHistory();
+    }
+    
+    
+    function renderHistory() {
+      const list = document.getElementById('history-list');
+      const arr = loadHistory();
+      if (!arr.length) {
+        list.innerHTML = '<div class="empty-history">El historial aparece acá después de subir archivos</div>';
+        return;
+      }
+      list.innerHTML = arr.map(item => `
+<div class="history-item">
+<div class="history-icon">
+<svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+</div>
+<div class="history-info">
+<div class="history-name">${escapeHtml(item.name)}</div>
+<div class="history-date">${formatDate(item.ts)}</div>
+</div>
+<div class="history-right">
+<span class="history-size">${formatSize(item.size)}</span>
+<span class="history-ttl ${item.isTemp ? 'ttl-temp' : 'ttl-perm'}">${item.isTemp ? 'temp' : 'perm'}</span>
+<button class="history-copy" onclick="copyHistoryUrl('${escapeAttr(item.url)}',this)">copiar</button>
+</div>
+</div>
+`).join('');
+    }
+    
+    
+    function copyHistoryUrl(url, btn) {
+      navigator.clipboard.writeText(url).then(() => {
+        btn.textContent = '✓';
+        setTimeout(() => btn.textContent = 'copiar', 2000);
+        showToast('URL copiada', 'success');
+      });
+    }
+    
+    
+    // ── UTILS ──
+    function formatSize(bytes) {
+      if (!bytes) return '—';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
+      return (bytes / 1073741824).toFixed(2) + ' GB';
+    }
+    
+    
+    function formatDate(ts) {
+      return new Date(ts).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+    
+    
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    
+    
+    function escapeAttr(s) { return String(s).replace(/'/g, "\\'"); }
+    
+    
+    async function simpleHash(str) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).slice(0, 4).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    
+    
+    function showToast(msg, type = 'error') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `toast ${type} show`;
+      setTimeout(() => t.classList.remove('show'), 4000);
+    }
+    
+    
+    // ── INIT ──
+    loadConfig();
+    renderHistory();
+  </script>
 </body>
+
 </html>
